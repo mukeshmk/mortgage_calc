@@ -60,6 +60,10 @@ def calculate_mortgage(json_data):
     # Store monthly records for CSV
     schedule_data = []
     
+    cumulative_interest = 0
+    cumulative_principal = 0
+    cumulative_total_paid = 0
+    
     while current_balance > 0.01: # Use small epsilon for float comparison logic
         start_balance = current_balance
         overpayment_amount = 0
@@ -111,6 +115,11 @@ def calculate_mortgage(json_data):
              current_balance -= principal_component
              total_amount_paid += amount_to_pay
         
+        # Update Cumulatives
+        cumulative_interest += interest_payment
+        cumulative_principal += (principal_component + overpayment_amount)
+        cumulative_total_paid += (interest_payment + principal_component + overpayment_amount)
+
         # Record data for this month
         schedule_data.append({
             "Month": month,
@@ -120,7 +129,10 @@ def calculate_mortgage(json_data):
             "Interest Paid": round(interest_payment, 2),
             "Principal Paid": round(principal_component, 2),
             "Overpayment": round(overpayment_amount, 2),
-            "End Balance": round(max(0, current_balance), 2)
+            "End Balance": round(max(0, current_balance), 2),
+            "Cumulative Interest": round(cumulative_interest, 2),
+            "Cumulative Principal": round(cumulative_principal, 2),
+            "Total Paid To Date": round(cumulative_total_paid, 2)
         })
 
         if current_balance <= 0.001: 
@@ -160,7 +172,7 @@ def calculate_mortgage(json_data):
     csv_file = "mortgage_schedule.csv"
     try:
         with open(csv_file, mode='w', newline='') as file:
-            fieldnames = ["Month", "Rate (%)", "Start Balance", "Monthly Payment", "Interest Paid", "Principal Paid", "Overpayment", "End Balance"]
+            fieldnames = ["Month", "Rate (%)", "Start Balance", "Monthly Payment", "Interest Paid", "Principal Paid", "Overpayment", "End Balance", "Cumulative Interest", "Cumulative Principal", "Total Paid To Date"]
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             
             writer.writeheader()
