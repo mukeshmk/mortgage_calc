@@ -53,6 +53,7 @@ def expand_scenarios(json_data):
         branches = []
         
         if isinstance(next_change['new_rate'], list):
+            print(f"  [Branching] Found list of rates for Month {next_change['month']}: {next_change['new_rate']}")
             for rate_option in next_change['new_rate']:
                 new_branch = copy.deepcopy(current_scenario_config)
                 single_event = copy.deepcopy(next_change)
@@ -66,11 +67,13 @@ def expand_scenarios(json_data):
             
         return branches
 
+    print(f"[{'Scenario Expansion':^20}] Starting...")
     base_scenario['name'] = "Scenario" 
     expanded_scenarios = build_branches(base_scenario, raw_rate_changes)
+    print(f"[{'Scenario Expansion':^20}] Finished. Total Scenarios: {len(expanded_scenarios)}")
     return expanded_scenarios
 
-def calculate_mortgage(scenario_data, return_schedule=False):
+def calculate_mortgage(scenario_data, return_schedule=False, verbose=False):
     """
     Simulates the mortgage.
     If return_schedule is True, includes the full monthly data list in the return dict.
@@ -105,6 +108,10 @@ def calculate_mortgage(scenario_data, return_schedule=False):
     cumulative_interest = 0
     cumulative_principal = 0
     cumulative_total_paid = 0
+    
+    if verbose:
+        print(f"\n--- Simulating: {scenario_data['name']} ---")
+        print(f"Start Rate: {current_rate}%, Window: M{window_start}-{window_end}")
 
     while current_balance > 0.01:
         start_balance = current_balance
@@ -112,6 +119,7 @@ def calculate_mortgage(scenario_data, return_schedule=False):
         
         if month in rate_changes:
             new_rate = rate_changes[month]
+            if verbose: print(f"  [Event] Month {month}: Rate change {current_rate}% -> {new_rate}%")
             current_rate = new_rate
             remaining_term_months = total_months_originally_planned - (month - 1)
             monthly_payment = calculate_monthly_payment(current_balance, current_rate, remaining_term_months / 12)
@@ -122,11 +130,12 @@ def calculate_mortgage(scenario_data, return_schedule=False):
         
         if month in overpayments:
             overpayment_amount = overpayments[month]
+            if verbose: print(f"  [Event] Month {month}: Overpayment of ${overpayment_amount}")
             current_balance -= overpayment_amount
             total_principal_paid += overpayment_amount
             
             if current_balance <= 0:
-                pass
+                if verbose: print(f"  [Info] Loan paid off via overpayment at Month {month}")
 
         amount_to_pay = monthly_payment
         principal_component = 0
@@ -145,7 +154,7 @@ def calculate_mortgage(scenario_data, return_schedule=False):
         if return_schedule:
             cumulative_interest += interest_payment
             cumulative_principal += (principal_component + overpayment_amount)
-            cumulative_total_paid += amount_to_pay + overpayment_amount if month in overpayments else amount_to_pay # Correct total paid logic
+            cumulative_total_paid += amount_to_pay + overpayment_amount if month in overpayments else amount_to_pay 
             
             schedule_data.append({
                 "Month": month,
@@ -197,45 +206,22 @@ def export_reports(results, output_dir):
     """
     Generates CSV for cheapest scenario and Excel for comparison.
     """
-    # 1. Finds cheapest scenario (lowest lifetime interest? Or window interest? usually lifetime is best for 'cheapest option' unless specified)
-    # The prompt asked for "cheapest option" in context of the window comparison usually, but for a full term CSV, 
-    # it likely implies the overall best one. However, the highlighting was for the window. 
-    # I will use LIFETIME interest for the "cheapest option" full CSV as that makes the most sense for a full schedule.
-    
-    # Actually, let's look at the result list.
     sorted_by_total_int = sorted(results, key=lambda x: x['lifetime_interest'])
     cheapest = sorted_by_total_int[0]
     
-    print(f"\nCheapest Scenario (Lifetime Interest): {cheapest['name']}")
+    print(f"\n[{'Reporting':^20}] Cheapest Scenario Identified: {cheapest['name']}")
     
-    # We need the DataFrame. The 'results' passed in might not have it if we didn't request it.
-    # To be efficient, we probably shouldn't request it for everyone initially?
-    # Or just request it for everyone? It's cheap enough for a few scenarios.
-    
-    # 2. Export Cheapest CSV
-    # We need to assume the schedule is present or re-generate.
     if 'schedule' not in cheapest:
-         # This shouldn't happen if we call calculate with return_schedule=True for all
-         # But if we did, convert to DF.
          pass
          
     df_cheapest = pd.DataFrame(cheapest['schedule'])
     csv_path = os.path.join(output_dir, "mortgage_schedule.csv")
     df_cheapest.to_csv(csv_path, index=False)
-    print(f"Exported cheapest scenario schedule to: {csv_path}")
+    print(f"[{'CSV Export':^20}] Saved to {csv_path}")
 
-    # 3. Export Excel Comparison
-    # We want to show "only that particular term where there is a difference of interest rate"
-    # Logic: Look at all DFs, compare 'Rate (%)' column.
-    
-    # Combine all dates to find range
-    # It's easier to verify difference month by month.
-    # We can perform a pivot or just iterate.
-    
+    # Excel Comparison
     all_schedules = {r['name']: pd.DataFrame(r['schedule']) for r in results}
     
-    # Find months where rates differ
-    # We can merge them all on 'Month'
     merged = None
     for name, df in all_schedules.items():
         temp = df[['Month', 'Rate (%)']].copy()
@@ -245,37 +231,35 @@ def export_reports(results, output_dir):
         else:
             merged = pd.merge(merged, temp, on='Month', how='outer')
             
-    # Filter rows where not all rate columns are equal
     rate_cols = [c for c in merged.columns if c.startswith('Rate_')]
-    
-    # Only rows where max != min implies difference
     merged['diff'] = merged[rate_cols].max(axis=1) != merged[rate_cols].min(axis=1)
     diff_months = merged[merged['diff']]['Month'].tolist()
     
     excel_path = os.path.join(output_dir, "scenario_comparison.xlsx")
     
     if not diff_months:
-        print("No difference in rates found across scenarios. Skipping Excel comparison export.")
+        print(f"[{'Excel Export':^20}] No rate differences found. Skipping.")
     else:
         min_month = min(diff_months)
         max_month = max(diff_months)
-        print(f"Exporting comparison for differing period (Month {min_month} to {max_month}) to {excel_path}...")
+        print(f"[{'Excel Export':^20}] Differing Period: Month {min_month} to {max_month}. Exporting...")
         
         with pd.ExcelWriter(excel_path) as writer:
             for name, df in all_schedules.items():
-                # Filter limits
                 mask = (df['Month'] >= min_month) & (df['Month'] <= max_month)
                 filtered_df = df[mask]
                 
-                # Check worksheet name limit (31 chars)
                 sheet_name = name.replace("Scenario -> ", "").replace("Rate ", "").replace("%", "")[:30]
-                # Replace invalid chars
                 for ch in ['[', ']', ':', '*', '?', '/', '\\']:
                     sheet_name = sheet_name.replace(ch, '')
                 
                 filtered_df.to_excel(writer, sheet_name=sheet_name, index=False)
+        print(f"[{'Excel Export':^20}] Saved to {excel_path}")
 
 def run_comparison_engine(config_path):
+    print(f"\n{'='*60}")
+    print(f"{'MORTGAGE COMPARISON ENGINE':^60}")
+    print(f"{'='*60}\n")
     print(f"Loading configuration from {config_path}...")
     try:
         config_data = load_config(config_path)
@@ -283,18 +267,20 @@ def run_comparison_engine(config_path):
         print("Error: Config file not found.")
         return
 
-    print("Expanding scenarios...")
     scenarios = expand_scenarios(config_data)
-    print(f"Generated {len(scenarios)} scenarios based on branching logic.\n")
     
     results = []
-    for sc in scenarios:
-        # Calculate WITH schedule for reporting
-        res = calculate_mortgage(sc, return_schedule=True)
+    print(f"\n[{'Calculation':^20}] Processing {len(scenarios)} scenarios...")
+    for i, sc in enumerate(scenarios, 1):
+        print(f"  -> Simulating Scenario {i}/{len(scenarios)}: {sc['name']}")
+        res = calculate_mortgage(sc, return_schedule=True, verbose=False)
         results.append(res)
         
     min_window_interest = min(r['window_interest'] for r in results)
     
+    print(f"\n{'='*105}")
+    print(f"{'COMPARISON RESULTS':^105}")
+    print(f"{'='*105}")
     print(f"{'Scenario Name':<45} | {'Window Int':<12} | {'Window Prin':<12} | {'Bal @ M24':<12} | {'Lifetime Int':<12}")
     print("-" * 105)
     
@@ -310,9 +296,12 @@ def run_comparison_engine(config_path):
         
         display_name = (name[:42] + '..') if len(name) > 42 else name
         print(f"{display_name:<45} | ${w_int:<11,.2f} | ${w_prin:<11,.2f} | ${bal:<11,.2f} | ${l_int:<11,.2f} {cheaper_mark}")
-        
-    # Export Reports
+    
+    print("-" * 105)
     export_reports(results, os.path.dirname(config_path))
+    print(f"\n{'='*60}")
+    print(f"{'DONE':^60}")
+    print(f"{'='*60}")
 
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))

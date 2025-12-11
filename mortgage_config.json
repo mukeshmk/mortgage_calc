@@ -1,7 +1,7 @@
 {
     "analysis_settings": {
         "window_start_month": 13,
-        "window_end_month": 24
+        "window_end_month": 36
     },
     "base_loan": {
         "principal": 425000,
