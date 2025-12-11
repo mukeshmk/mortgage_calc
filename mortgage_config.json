@@ -1,7 +1,7 @@
 {
     "analysis_settings": {
         "window_start_month": 13,
-        "window_end_month": 36
+        "window_end_month": 61
     },
     "base_loan": {
         "principal": 425000,
@@ -12,20 +12,21 @@
         {
             "month": 13,
             "new_rate": [
-                3.3,
-                2.1
+                3.3
             ]
         },
         {
             "month": 25,
             "new_rate": [
-                2.8,
-                2.2
+                3.1,
+                3,
+                2.9,
+                2.8
             ]
         },
         {
-            "month": 37,
-            "new_rate": 3.6
+            "month": 61,
+            "new_rate": 3.5
         }
     ],
     "overpayments": [
