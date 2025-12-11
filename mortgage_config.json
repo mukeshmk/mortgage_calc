@@ -1,0 +1,71 @@
+{
+    "loan_details": {
+        "principal": 425000,
+        "start_rate": 4.3,
+        "years": 30
+    },
+    "rate_changes": [
+        {
+            "month": 13,
+            "new_rate": 3.3
+        },
+        {
+            "month": 25,
+            "new_rate": 2.8
+        },
+        {
+            "month": 37,
+            "new_rate": 3.6
+        }
+    ],
+    "overpayments": [
+        {
+            "month": 13,
+            "amount": 180
+        },
+        {
+            "month": 14,
+            "amount": 180
+        },
+        {
+            "month": 15,
+            "amount": 180
+        },
+        {
+            "month": 16,
+            "amount": 180
+        },
+        {
+            "month": 17,
+            "amount": 180
+        },
+        {
+            "month": 18,
+            "amount": 180
+        },
+        {
+            "month": 19,
+            "amount": 180
+        },
+        {
+            "month": 20,
+            "amount": 180
+        },
+        {
+            "month": 21,
+            "amount": 180
+        },
+        {
+            "month": 22,
+            "amount": 180
+        },
+        {
+            "month": 23,
+            "amount": 180
+        },
+        {
+            "month": 24,
+            "amount": 180
+        }
+    ]
+}
