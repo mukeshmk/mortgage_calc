@@ -59,7 +59,7 @@ def expand_scenarios(json_data):
                 single_event = copy.deepcopy(next_change)
                 single_event['new_rate'] = rate_option
                 new_branch['rate_changes'].append(single_event)
-                new_branch['name'] += f" -> Rate {rate_option}% @ M{next_change['month']}"
+                new_branch['name'] += f" -> {rate_option}% @ M{next_change['month']}"
                 branches.extend(build_branches(new_branch, rest_changes))
         else:
             current_scenario_config['rate_changes'].append(next_change)
