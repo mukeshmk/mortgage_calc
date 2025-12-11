@@ -1,6 +1,8 @@
 import csv
 import json
 import math
+import os
+import sys
 
 def calculate_monthly_payment(principal, annual_rate, years):
     """
@@ -156,15 +158,47 @@ def calculate_mortgage(json_data):
         
     # Write to CSV
     csv_file = "mortgage_schedule.csv"
-    with open(csv_file, mode='w', newline='') as file:
-        fieldnames = ["Month", "Rate (%)", "Start Balance", "Monthly Payment", "Interest Paid", "Principal Paid", "Overpayment", "End Balance"]
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        
-        writer.writeheader()
-        for row in schedule_data:
-            # Format floats for prettier CSV? Optional, but keeping raw numbers is better for analysis.
-            # Let's round to 2 decimals for readability if requested, but raw is fine. User wants to "see how... it changes".
-            # Standard float output is fine.
-            writer.writerow(row)
+    try:
+        with open(csv_file, mode='w', newline='') as file:
+            fieldnames = ["Month", "Rate (%)", "Start Balance", "Monthly Payment", "Interest Paid", "Principal Paid", "Overpayment", "End Balance"]
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
             
-    print(f"\nDetailed schedule exported to '{csv_file}'")
+            writer.writeheader()
+            for row in schedule_data:
+                writer.writerow(row)
+        print(f"\nDetailed schedule exported to '{csv_file}'")
+    except Exception as e:
+        print(f"\nWarning: Could not write CSV file. Details: {e}")
+
+if __name__ == "__main__":
+    
+    # Determine directory of the script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(script_dir, 'mortgage_config.json')
+    error_log_path = os.path.join(script_dir, 'error_log.txt')
+    
+    try:
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"Configuration file not found at: {config_path}")
+            
+        with open(config_path, 'r') as f:
+            config_data = json.load(f)
+            
+        calculate_mortgage(config_data)
+        
+    except Exception as e:
+        print(f"\nCRITICAL ERROR: {e}")
+        # Write to error log
+        try:
+             with open(error_log_path, 'w') as log:
+                log.write(f"Error: {str(e)}\n")
+             print(f"Error details written to {error_log_path}")
+        except:
+             print(f"Could not write to error log at {error_log_path}")
+        
+    finally:
+        print("\nSimulation complete or terminated.")
+        try:
+            input("Press Enter to exit...")
+        except EOFError:
+            pass
