@@ -115,12 +115,12 @@ def calculate_mortgage(json_data):
         schedule_data.append({
             "Month": month,
             "Rate (%)": current_rate,
-            "Start Balance": start_balance,
-            "Monthly Payment": amount_to_pay,
-            "Interest Paid": interest_payment,
-            "Principal Paid": principal_component,
-            "Overpayment": overpayment_amount,
-            "End Balance": max(0, current_balance)
+            "Start Balance": round(start_balance, 2),
+            "Monthly Payment": round(amount_to_pay, 2),
+            "Interest Paid": round(interest_payment, 2),
+            "Principal Paid": round(principal_component, 2),
+            "Overpayment": round(overpayment_amount, 2),
+            "End Balance": round(max(0, current_balance), 2)
         })
 
         if current_balance <= 0.001: 
@@ -198,7 +198,3 @@ if __name__ == "__main__":
         
     finally:
         print("\nSimulation complete or terminated.")
-        try:
-            input("Press Enter to exit...")
-        except EOFError:
-            pass
