@@ -1,51 +1,66 @@
-# Mortgage Repayment Calculator
+# Branching Mortgage Comparison Engine
 
-A Python-based tool to calculate mortgage repayment schedules with support for dynamic events like interest rate changes and overpayments.
+A powerful Python tool designed to compare different mortgage scenarios side-by-side. It handles dynamic interest rate branching to help you find the most cost-effective mortgage option over a specific timeframe.
 
-## Features
-*   **JSON Configuration**: Easy-to-edit `mortgage_config.json` file for loan details.
-*   **Dynamic Events**:
-    *   **Rate Changes**: Handles multiple interest rate changes over the loan term. (Payments are recalculated to fit the original term).
-    *   **Overpayments**: Handles lump-sum overpayments at specific months. (Reduces principal and shortening the term, keeping monthly payments constant).
-*   **CSV Export**: Automatically generates `mortgage_schedule.csv` with a month-by-month breakdown.
-*   **Robustness**: Error logging and cross-platform path handling.
+## Key Features
 
-## Files
-*   `mortgage_calculator.py`: The main script.
-*   `mortgage_config.json`: Configuration file.
-*   `mortgage_schedule.csv`: Output file (generated after run).
-*   `error_log.txt`: Created if the script encounters an error.
+*   **Branching Scenarios**: Automatically generates multiple scenarios when you provide a list of potential interest rates (e.g., `[2.8, 2.2]`).
+*   **Windowed Analysis**: Focuses comparison on a specific period (e.g., Months 13-36) to see cost differences during critical rate periods.
+*   **comparison Engine**:
+    *   **Terminal Dashboard**: Instant summary table highlighting the cheapest option within your analysis window.
+    *   **Smart Excel Export**: Generates `scenario_comparison.xlsx` with separate sheets for each scenario, specifically targeting months where rates differ.
+    *   **Detailed CSV**: Exports the full amortization schedule of the overall cheapest scenario to `mortgage_schedule.csv`.
+*   **Flexible Configuration**: Easy-to-use JSON config for loan details, rate changes, and overpayments.
 
-## Usage
+## Quick Start
 
-### 1. Configure
-Edit `mortgage_config.json` to match your loan details:
+### 1. Configure (`mortgage_config.json`)
+Define your loan parameters and analysis goals.
+
 ```json
 {
-  "loan_details": {
-    "principal": 425000,
-    "start_rate": 4.3,
-    "years": 30
-  },
-  "rate_changes": [
-    {"month": 13, "new_rate": 3.3}
-  ],
-  "overpayments": [
-    {"month": 20, "amount": 5000}
-  ]
+    "analysis_settings": {
+        "window_start_month": 13,
+        "window_end_month": 36
+    },
+    "base_loan": {
+        "principal": 425000,
+        "start_rate": 4.3,
+        "years": 30
+    },
+    "rate_changes": [
+        {
+            "month": 13,
+            "new_rate": [3.3, 2.1]  <-- Creates 2 branches
+        },
+        {
+            "month": 25,
+            "new_rate": 2.8         <-- Applied to all active branches
+        }
+    ],
+    "overpayments": [
+        { "month": 13, "amount": 1800 }
+    ]
 }
 ```
 
-### 2. Run
-Double-click `mortgage_calculator.py` or run via terminal:
+### 2. Run the Engine
+Execute the script from your terminal:
 
 ```bash
-# Using Python
-python mortgage_calculator.py
+# Using the local virtual environment (recommended)
+.venv\Scripts\python mortgage_calculator.py
 
-# Or if using the local virtual environment
-.venv\Scripts\python.exe mortgage_calculator.py
+# Or standard python
+python mortgage_calculator.py
 ```
 
-### 3. Analyze
-Open `mortgage_schedule.csv` in Excel or Google Sheets to view the full amortization schedule.
+### 3. Analyze Results
+*   **Terminal**: Check the "COMPARISON RESULTS" table for a quick win/loss analysis.
+*   **`mortgage_schedule.csv`**: Full monthly breakdown of the winner.
+*   **`scenario_comparison.xlsx`**: Deep dive into the differences.
+
+## File Structure
+*   `mortgage_calculator.py`: Core logic for branching, calculation, and reporting.
+*   `mortgage_config.json`: User inputs and settings.
+*   `walkthrough.md`: Detailed step-by-step guide.
